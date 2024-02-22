@@ -1,0 +1,72 @@
+import heapq
+
+class Node:
+    def __init__(self, state, parent=None, g=0, h=0):
+        self.state = state
+        self.parent = parent
+        self.g = g  # Cost from the start node to this node
+        self.h = h  # Heuristic cost from this node to the goal node
+
+    def __lt__(self, other):
+        # Comparison method for priority queue
+        return (self.g + self.h) < (other.g + other.h)
+
+def astar(initial_state, goal_state, successors, heuristic):
+    start_node = Node(state=initial_state, g=0, h=heuristic(initial_state, goal_state))
+    frontier = [start_node]  # Priority queue (min heap)
+    explored = set()
+
+    while frontier:
+        current_node = heapq.heappop(frontier)
+
+        if current_node.state == goal_state:
+            # Goal state reached, reconstruct and return the path
+            path = []
+            while current_node:
+                path.append(current_node.state)
+                current_node = current_node.parent
+            return path[::-1]
+
+        explored.add(current_node.state)
+
+        for successor, cost in successors(current_node.state):
+            if successor not in explored:
+                # Calculate g and h for the successor
+                g = current_node.g + cost
+                h = heuristic(successor, goal_state)
+                new_node = Node(state=successor, parent=current_node, g=g, h=h)
+
+                # Check if the successor is already in the frontier with a higher cost
+                in_frontier = any(node.state == successor and (node.g + node.h) < (g + h) for node in frontier)
+
+                if not in_frontier:
+                    heapq.heappush(frontier, new_node)
+
+    return None  # No solution found
+
+# Example usage:
+def successors(state):
+    # Define the possible successors of a state along with their costs
+    successors_dict = {
+        'A': [('B', 1), ('C', 3)],
+        'B': [('A', 1), ('D', 2)],
+        'C': [('A', 3), ('D', 1)],
+        'D': [('B', 2), ('C', 1)]
+    }
+    return successors_dict.get(state, [])
+
+def heuristic(state, goal_state):
+    # Example heuristic: Hamming distance (number of positions where the characters differ)
+    return sum(1 for a, b in zip(state, goal_state) if a != b)
+
+
+
+if __name__ == "__main__":
+    initial_state = 'A'
+    goal_state = 'D'
+    path = astar(initial_state, goal_state, successors, heuristic)
+
+    if path:
+        print(f"Path from {initial_state} to {goal_state}: {path}")
+    else:
+        print("No path found.")
